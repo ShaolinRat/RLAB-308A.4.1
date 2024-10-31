@@ -1,5 +1,6 @@
-import * as Carousel from "./Carousel.js";
-import axios from "axios";
+// import * as Carousel from "./Carousel.js";
+// import axios from "axios";
+// import * as bootstrap from "bootstrap";
 
 // The breed selection input element.
 const breedSelect = document.getElementById("breedSelect");
@@ -11,7 +12,12 @@ const progressBar = document.getElementById("progressBar");
 const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 
 // Step 0: Store your API key here for reference and easy access.
-const API_KEY = "";
+const API_KEY =
+  "live_MRwWd4AwVZb6iylUQ8VOimONnGEcNwVSfRdqlTSWTeXL1fCb9Ylxvfv4RY6aJoG6";
+
+const BASE_URL = "https://api.thecatapi.com/v1/";
+
+let breedData;
 
 /**
  * 1. Create an async function "initialLoad" that does the following:
@@ -21,6 +27,36 @@ const API_KEY = "";
  *  - Each option should display text equal to the name of the breed.
  * This function should execute immediately.
  */
+// console.log(typeof breedSelect);
+// console.log("===>", breedSelect);
+// console.log(`breedSelect's innerHTML: ${breedSelect.innerHTML}`);
+async function initialLoad() {
+  try {
+    // console.log(typeof breedSelect);
+    const response = await fetch(BASE_URL + "breeds", {
+      "x-api-key": API_KEY,
+    });
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    // console.log(data[1]);
+    for (let i = 0; i < data.length; i++) {
+      // breedSelect.innerHTML += `<option id=${data[i].name}>${data[i].name}</option>`;
+      // console.log(typeof breedSelect);
+      let option = document.createElement("option");
+      option.innerHTML = data[i].name;
+      option.setAttribute("id", `${data[i].id}`);
+      // console.log(data[i].id);
+      breedSelect.appendChild(option);
+    }
+    // console.log(data);
+  } catch (error) {
+    console.error("There has been a problem with your fetch operation", error);
+  }
+}
+
+initialLoad();
 
 /**
  * 2. Create an event handler for breedSelect that does the following:
@@ -36,7 +72,63 @@ const API_KEY = "";
  * - Each new selection should clear, re-populate, and restart the Carousel.
  * - Add a call to this function to the end of your initialLoad function above to create the initial carousel.
  */
+breedSelect.addEventListener("change", async (e) => {
+  console.log(e);
+  const selectedBreedId = breedSelect[breedSelect.selectedIndex].id;
+  console.log(selectedBreedId);
+  try {
+    console.log(typeof breedSelect);
+    const response = await fetch(
+      `${BASE_URL}images/search?breed_ids=${selectedBreedId}&limit=10`,
+      {
+        "x-api-key": API_KEY,
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
 
+    const data = await response.json();
+    console.log("This is our data", data);
+    const cTag = document.getElementById("carouselInner");
+    while (cTag.firstChild) {
+      cTag.removeChild(cTag.firstChild);
+    }
+    console.log(data);
+    // data.forEach((breed) => {
+    //   let cItemDiv = document.createElement("div");
+    //   let cItemDivImg = document.createElement("img");
+    //   cItemDiv.classList.add("carousel-item", "active");
+    //   cItemDivImg.setAttribute("src", breed.url);
+    //   cItemDiv.appendChild(cItemDivImg);
+    //   cTag.appendChild(cItemDiv);
+    // });
+
+    data.forEach((breed, index) => {
+      let cItem = createCarouselItem(breed.url, breedSelect.value, breed.id);
+      console.log("THis is the option value", breedSelect.value);
+      appendCarousel(cItem);
+    });
+
+    start();
+
+    // data.forEach((breed, index) => {
+    //   let cItemDiv = document.createElement("div");
+    //   let cItemDivImg = document.createElement("img");
+    //   cItemDiv.classList.add("carousel-item");
+
+    //   if (index === 0) {
+    //     cItemDiv.classList.add("active");
+    //   }
+    //   cItemDivImg.setAttribute("src", breed.url);
+    //   cItemDivImg.classList.add("d-block", "w-100");
+    //   cItemDiv.appendChild(cItemDivImg);
+    //   cTag.appendChild(cItemDiv);
+    // });
+  } catch (error) {
+    console.log("There is a problem with the request", error);
+  }
+});
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
  */
@@ -88,7 +180,7 @@ const API_KEY = "";
  *   you delete that favourite using the API, giving this function "toggle" functionality.
  * - You can call this function by clicking on the heart at the top right of any image.
  */
-export async function favourite(imgId) {
+async function favourite(imgId) {
   // your code here
 }
 
@@ -109,3 +201,78 @@ export async function favourite(imgId) {
  * - Test other breeds as well. Not every breed has the same data available, so
  *   your code should account for this.
  */
+
+// ======================================
+function createCarouselItem(imgSrc, imgAlt, imgId) {
+  const template = document.querySelector("#carouselItemTemplate");
+  const clone = template.content.firstElementChild.cloneNode(true);
+
+  const img = clone.querySelector("img");
+  img.src = imgSrc;
+  img.alt = imgAlt;
+
+  const favBtn = clone.querySelector(".favourite-button");
+  favBtn.addEventListener("click", () => {
+    favourite(imgId);
+  });
+
+  return clone;
+}
+
+function clear() {
+  const carousel = document.querySelector("#carouselInner");
+  while (carousel.firstChild) {
+    carousel.removeChild(carousel.firstChild);
+  }
+}
+
+function appendCarousel(element) {
+  const carousel = document.querySelector("#carouselInner");
+
+  const activeItem = document.querySelector(".carousel-item.active");
+  if (!activeItem) element.classList.add("active");
+
+  carousel.appendChild(element);
+}
+
+function start() {
+  const multipleCardCarousel = document.querySelector(
+    "#carouselExampleControls"
+  );
+  if (window.matchMedia("(min-width: 768px)").matches) {
+    // const carousel = new bootstrap.Carousel(multipleCardCarousel, {
+    //   interval: false,
+    // });
+    const carouselWidth = $(".carousel-inner")[0].scrollWidth;
+    const cardWidth = $(".carousel-item").width();
+    let scrollPosition = 0;
+    $("#carouselExampleControls .carousel-control-next").unbind();
+    $("#carouselExampleControls .carousel-control-next").on(
+      "click",
+      function () {
+        if (scrollPosition < carouselWidth - cardWidth * 4) {
+          scrollPosition += cardWidth;
+          $("#carouselExampleControls .carousel-inner").animate(
+            { scrollLeft: scrollPosition },
+            600
+          );
+        }
+      }
+    );
+    $("#carouselExampleControls .carousel-control-prev").unbind();
+    $("#carouselExampleControls .carousel-control-prev").on(
+      "click",
+      function () {
+        if (scrollPosition > 0) {
+          scrollPosition -= cardWidth;
+          $("#carouselExampleControls .carousel-inner").animate(
+            { scrollLeft: scrollPosition },
+            600
+          );
+        }
+      }
+    );
+  } else {
+    $(multipleCardCarousel).addClass("slide");
+  }
+}
